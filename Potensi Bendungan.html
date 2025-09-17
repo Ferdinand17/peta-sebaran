@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Peta Bendungan PUPR (Warna Ikon Berdasarkan Kondisi)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <style>
+    #map { height: 620px; margin: 20px; }
+    .legend { background: white; padding: 8px 10px; line-height: 1.4; border-radius: 6px; box-shadow: 0 0 8px rgba(0,0,0,.15);}
+    .legend .row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+    .legend img { width: 14px; height: 22px; }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center;">Peta Sebaran Potensi Pemanfaatan PLTS Terapung pada Bendungan Milik Kementerian PU - Berdasarkan Kategori 36 Bendungan Selesai, 25 Bendungan On Going, dan 11 Bendungan Baru</h2>
+  <div id="map"></div>
+
+  <script>
+    // Inisialisasi peta
+    var map = L.map('map').setView([-7.2, 108.4], 6);
+
+    // Basemap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Definisi ikon berwarna (via leaflet-color-markers)
+    const shadowUrl = 'https://unpkg.com/leaflet/dist/images/marker-shadow.png';
+    function colorIcon(url) {
+      return new L.Icon({
+        iconUrl: url, shadowUrl,
+        iconSize: [25,41], iconAnchor: [12,41],
+        popupAnchor: [1,-34], shadowSize: [41,41]
+      });
+    }
+    const iconRed    = colorIcon('https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png');
+    const iconYellow = colorIcon('https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png');
+    const iconGreen  = colorIcon('https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png');
+    const iconBlue   = colorIcon('https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png');
+    const iconViolet = colorIcon('https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-violet.png');
+    const iconBlack = colorIcon('https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-black.png');
+
+    // Data bendungan (5 lokasi, satu per kategori)
+    var bendungan = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [117.397, -0.108] },
+          "properties": {
+            "Nama": "Bendungan Marangkayu",
+            "Lokasi": "Provinsi Kalimantan Timur",
+            "Potensi Kapasitas": "51,63 MW",
+            "Luas Genangan": "258,15 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",               /* kosongkan jika bukan 'Kering' */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025–2034 (Hal. A-182 dan Hal. A-183)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [110.996, -8.036] },
+          "properties": {
+            "Nama": "Bendungan Pidekso",
+            "Lokasi": "Provinsi Jawa Tengah",
+            "Potensi Kapasitas": "46,4 MW",
+            "Luas Genangan": "232 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025–2034 (Hal. B-57 dan Hal. B-58)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [108.705, -7.063] },
+          "properties": {
+            "Nama": "Bendungan Kuningan",
+            "Lokasi": "Provinsi Jawa Barat",
+            "Potensi Kapasitas": "44,32 MW",
+            "Luas Genangan": "221,59 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025–2034 (Hal. B-41 dan Hal. B-42)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.583, -7.932] },
+          "properties": {
+            "Nama": "Bendungan Bendo",
+            "Lokasi": "Provinsi Jawa Timur",
+            "Potensi Kapasitas": "33,93 MW",
+            "Luas Genangan": "169,64 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025–2034 (Hal. B-91 dan Hal. B-92)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.901, -7.362] },
+          "properties": {
+            "Nama": "Bendungan Gongseng",
+            "Lokasi": "Provinsi Jawa Timur",
+            "Potensi Kapasitas": "57,6 MW",
+            "Luas Genangan": "288 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025–2034 (Hal. B-91 dan Hal. B-92)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.143, -8.058] },
+          "properties": {
+            "Nama": "Bendungan Tukul",
+            "Lokasi": "Provinsi Jawa Timur",
+            "Potensi Kapasitas": "8,96 MW",
+            "Luas Genangan": "44,81 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",
+            "Mekanisme": "-",
+            "Keterangan": "RUPTL 2025–2034 (Hal. B-91 dan Hal. B-92)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [105.485, -5.207] },
+          "properties": {
+            "Nama": "Bendungan Marga Tiga",
+            "Lokasi": "Provinsi Lampung",
+            "Potensi Kapasitas": "462,79 MW",
+            "Luas Genangan": "2.313,96 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",
+            "Mekanisme": "Tidak Ada",
+            "Keterangan": "RUPTL 2025–2034 (Hal. A-122)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.585, -8.039] },
+          "properties": {
+            "Nama": "Bendungan Tugu",
+            "Lokasi": "Provinsi Jawa Timur",
+            "Potensi Kapasitas": "7,62 MW",
+            "Luas Genangan": "38,11 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",
+            "Mekanisme": "-",
+            "Keterangan": "RUPTL 2025–2034 (Hal. B-91 dan Hal. B-92)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [119.803, -5.514] },
+          "properties": {
+            "Nama": "Bendungan Karalloe",
+            "Lokasi": "Provinsi Sulawesi Selatan",
+            "Potensi Kapasitas": "49,7 MW",
+            "Luas Genangan": "248,5 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025–2034 (Hal. C-66 dan Hal. C-67)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [97.150, 4.936] },
+          "properties": {
+            "Nama": "Bendungan Keureuto",
+            "Lokasi": "Provinsi Aceh",
+            "Potensi Kapasitas": "179,28 MW",
+            "Luas Genangan": "896,39 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. A-8 dan Hal. A-9)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [115.336, -2.940] },
+          "properties": {
+            "Nama": "Bendungan Tapin",
+            "Lokasi": "Provinsi Kalimantan Selatan",
+            "Potensi Kapasitas": "85 MW",
+            "Luas Genangan": "425 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "-",
+            "Keterangan": "RUPTL 2025-2034 (Hal. A-153)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [120.181, -3.882] },
+          "properties": {
+            "Nama": "Bendungan Passeloreng",
+            "Lokasi": "Provinsi Sulawesi Selatan",
+            "Potensi Kapasitas": "256,68 MW",
+            "Luas Genangan": "1.283,41 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-66 dan Hal. C-67)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [124.072, 0.802] },
+          "properties": {
+            "Nama": "Bendungan Lolak",
+            "Lokasi": "Provinsi Sulawesi Utara",
+            "Potensi Kapasitas": "20,35 MW",
+            "Luas Genangan": "101,75 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-13)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [116.987, -8.714] },
+          "properties": {
+            "Nama": "Bendungan Bintang Bano",
+            "Lokasi": "Provinsi Nusa Tenggara Barat",
+            "Potensi Kapasitas": "51,28 MW",
+            "Luas Genangan": "256,41 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-208 dan Hal. C-209)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [106.284, -6.413] },
+          "properties": {
+            "Nama": "Bendungan Karian",
+            "Lokasi": "Provinsi Banten",
+            "Potensi Kapasitas": "348 MW",
+            "Luas Genangan": "1.740 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-20 dan Hal. B-21)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [95.894, 5.202] },
+          "properties": {
+            "Nama": "Bendungan Rukoh dan Bangunan Pengarah Bendungan Rukoh",
+            "Lokasi": "Provinsi Aceh",
+            "Potensi Kapasitas": "143,22 MW",
+            "Luas Genangan": "716,10 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. A-8 dan Hal. A-9)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [104.918, -5.333] },
+          "properties": {
+            "Nama": "Bendungan Way Sekampung",
+            "Lokasi": "Provinsi Lampung",
+            "Potensi Kapasitas": "165 MW",
+            "Luas Genangan": "825 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "Tidak Ada Keterangan",
+            "Keterangan": "RUPTL 2025-2034 (Hal. A-122)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [124.930, 1.442] },
+          "properties": {
+            "Nama": "Bendungan Kuwil Kawangkoan",
+            "Lokasi": "Provinsi Sulawesi Utara",
+            "Potensi Kapasitas": "27,8 MW",
+            "Luas Genangan": "139 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-13)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [121.891, -4.149] },
+          "properties": {
+            "Nama": "Bendungan Ladongi",
+            "Lokasi": "Provinsi Sulawesi Tenggara",
+            "Potensi Kapasitas": "42,6 MW",
+            "Luas Genangan": "213 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-89)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [106.862, -6.664] },
+          "properties": {
+            "Nama": "Bendungan Ciawi",
+            "Lokasi": "Provinsi Jawa Barat",
+            "Potensi Kapasitas": "- MW",
+            "Luas Genangan": "- Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "Kering",         /* kategori khusus -> ungu */
+            "Mekanisme": "-",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [106.881, -6.669] },
+          "properties": {
+            "Nama": "Bendungan Sukamahi",
+            "Lokasi": "Provinsi Jawa Barat",
+            "Potensi Kapasitas": "- MW",
+            "Luas Genangan": "- Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "Kering",         /* kategori khusus -> ungu */
+            "Mekanisme": "-",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [108.396, -7.361] },
+          "properties": {
+            "Nama": "Bendungan Leuwikeris",
+            "Lokasi": "Provinsi Jawa Barat",
+            "Potensi Kapasitas": "48,58 MW",
+            "Luas Genangan": "242,9 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-41 dan Hal. B-42)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [108.028, -6.664] },
+          "properties": {
+            "Nama": "Bendungan Cipanas",
+            "Lokasi": "Provinsi Jawa Barat",
+            "Potensi Kapasitas": "263,19 MW",
+            "Luas Genangan": "1.315,95 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-41 dan Hal. B-42)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [103.875, -4.628] },
+          "properties": {
+            "Nama": "Bendungan Tiga Dihaji",
+            "Lokasi": "Provinsi Sumatera Selatan",
+            "Potensi Kapasitas": "93,6 MW",
+            "Luas Genangan": "468 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "Tidak Ada",
+            "Keterangan": "RUPTL 2025-2034 (Hal. A-99)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.893, -7.491] },
+          "properties": {
+            "Nama": "Bendungan Semantok",
+            "Lokasi": "Provinsi Jawa Timur",
+            "Potensi Kapasitas": "58,6 MW",
+            "Luas Genangan": "293 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-91 dan Hal. B-92)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [119.594, -5.398] },
+          "properties": {
+            "Nama": "Bendungan Pamukkulu",
+            "Lokasi": "Provinsi Sulawesi Selatan",
+            "Potensi Kapasitas": "92 MW",
+            "Luas Genangan": "460 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-66 dan Hal. C-67)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [110.020, -7.598] },
+          "properties": {
+            "Nama": "Bendungan Bener",
+            "Lokasi": "Provinsi Jawa Tengah",
+            "Potensi Kapasitas": "62,6 MW",
+            "Luas Genangan": "313 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-57 dan Hal. B-58)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [107.848, -6.587] },
+          "properties": {
+            "Nama": "Bendungan Sadawarna",
+            "Lokasi": "Provinsi Jawa Barat",
+            "Potensi Kapasitas": "136,3 MW",
+            "Luas Genangan": "681,48 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-41 dan Hal. B-42)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [98.648, 3.350] },
+          "properties": {
+            "Nama": "Bendungan Lausimeme",
+            "Lokasi": "Provinsi Sumatera Utara",
+            "Potensi Kapasitas": "49,36 MW",
+            "Luas Genangan": "246,8 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. A-23 dan Hal. A-24)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [115.248, -8.316] },
+          "properties": {
+            "Nama": "Bendungan Sidan",
+            "Lokasi": "Provinsi Bali",
+            "Potensi Kapasitas": "3,2 MW",
+            "Luas Genangan": "16 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-120)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.694, -7.999] },
+          "properties": {
+            "Nama": "Bendungan Bagong",
+            "Lokasi": "Provinsi Jawa Timur",
+            "Potensi Kapasitas": "14,69 MW",
+            "Luas Genangan": "73,45 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-91 dan Hal. B-92)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.257, -6.872] },
+          "properties": {
+            "Nama": "Bendungan Randugunting",
+            "Lokasi": "Provinsi Jawa Tengah",
+            "Potensi Kapasitas": "31,02 MW",
+            "Luas Genangan": "155,10 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-57 dan Hal. B-58)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [121.283, -8.695] },
+          "properties": {
+            "Nama": "Bendungan Mbay",
+            "Lokasi": "Provinsi Nusa Tenggara Tiumr",
+            "Potensi Kapasitas": "99,89 MW",
+            "Luas Genangan": "499,44 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Bendungan Baru",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-226 dan Hal. C-227)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [123.095, 0.660] },
+          "properties": {
+            "Nama": "Bendungan Bulango Ulu",
+            "Lokasi": "Provinsi Gorontalo",
+            "Potensi Kapasitas": "122,94 MW",
+            "Luas Genangan": "614,72 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-46)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [122.585, -8.550] },
+          "properties": {
+            "Nama": "Bendungan Napun Gete",
+            "Lokasi": "Provinsi Nusa Tenggara Timur",
+            "Potensi Kapasitas": "19,96 MW",
+            "Luas Genangan": "99,78 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-226 dan Hal. C-227)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [124.446, -9.717] },
+          "properties": {
+            "Nama": "Bendungan Temef",
+            "Lokasi": "Provinsi Nusa Tenggara Timur",
+            "Potensi Kapasitas": "59,56 MW",
+            "Luas Genangan": "297,78 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-226 dan Hal. C-227)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [126.020, -7.598] },
+          "properties": {
+            "Nama": "Bendungan Way Apu",
+            "Lokasi": "Provinsi Maluku",
+            "Potensi Kapasitas": "54,76 MW",
+            "Luas Genangan": "273,79 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "-",
+            "Keterangan": "Tidak terdapat kuota tersebar PLTS dalam RUPTL 2025-2034"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [116.153, -8.521] },
+          "properties": {
+            "Nama": "Bendungan Meninting",
+            "Lokasi": "Provinsi Nusa Tenggara Barat",
+            "Potensi Kapasitas": "10,72 MW",
+            "Luas Genangan": "53,60 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-208 dan Hal. C-209)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [115.181, -8.129] },
+          "properties": {
+            "Nama": "Bendungan Tamblang",
+            "Lokasi": "Provinsi Bali",
+            "Potensi Kapasitas": "7,17 MW",
+            "Luas Genangan": "35,86 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-120)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [117.125, -8.455] },
+          "properties": {
+            "Nama": "Bendungan Beringin Sila",
+            "Lokasi": "Provinsi Nusa Tenggara Barat",
+            "Potensi Kapasitas": "25,2 MW",
+            "Luas Genangan": "126 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-208 dan Hal. C-209)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [116.926, -8.793] },
+          "properties": {
+            "Nama": "Bendungan Tiu Suntuk",
+            "Lokasi": "Provinsi Nusa Tenggara Barat",
+            "Potensi Kapasitas": "62,42 MW",
+            "Luas Genangan": "312,09 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-208 dan Hal. C-209)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [123.720, -10.219] },
+          "properties": {
+            "Nama": "Bendungan Manikin",
+            "Lokasi": "Provinsi Nusa Tenggara Timur",
+            "Potensi Kapasitas": "33 MW",
+            "Luas Genangan": "165 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-226 dan Hal. C-227)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.080, -7.712] },
+          "properties": {
+            "Nama": "Bendungan Jlantah",
+            "Lokasi": "Provinsi Jawa Tengah",
+            "Potensi Kapasitas": "10,11 MW",
+            "Luas Genangan": "50,54 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-57 dan Hal. B-58)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [110.562, -7.088] },
+          "properties": {
+            "Nama": "Bendungan Jragung",
+            "Lokasi": "Provinsi Jawa Tengah",
+            "Potensi Kapasitas": "90,26 MW",
+            "Luas Genangan": "451,3 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-57 dan Hal. B-58)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [116.841, -0.910] },
+          "properties": {
+            "Nama": "Bendungan Sepaku Semoi",
+            "Lokasi": "Provinsi Kalimantan Timur",
+            "Potensi Kapasitas": "66,93 MW",
+            "Luas Genangan": "334,64 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. A-182)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [119.452, -2.016] },
+          "properties": {
+            "Nama": "Bendungan Budong-Budong",
+            "Lokasi": "Provinsi Sulawesi Barat",
+            "Potensi Kapasitas": "73,83 MW",
+            "Luas Genangan": "369,13 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "-",
+            "Keterangan": "Tidak terdapat kuota tersebar PLTS dalam RUPTL 2025-2034"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [122.008, -3.907] },
+          "properties": {
+            "Nama": "Bendungan Ameroro",
+            "Lokasi": "Provinsi Sulawesi Tenggara",
+            "Potensi Kapasitas": "48,81 MW",
+            "Luas Genangan": "244,06 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "On Going",
+            "RUPTL": "Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. C-89)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.453, -7.260] },
+          "properties": {
+            "Nama": "Bendungan Karangnongko",
+            "Lokasi": "Provinsi Jawa Tengah dan Jawa Timur",
+            "Potensi Kapasitas": "205,31 MW",
+            "Luas Genangan": "1.026,55 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Bendungan Baru",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "RUPTL 2025-2034 (Hal. B-58, Hal. B-91, Hal. B-91, dan Hal. B-92)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [110.922, -6.757] },
+          "properties": {
+            "Nama": "Bendungan Logung",
+            "Lokasi": "Provinsi Jawa Tengah",
+            "Potensi Kapasitas": "7,22 MW",
+            "Luas Genangan": "36,10 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.077, -7.567] },
+          "properties": {
+            "Nama": "Bendungan Gondang",
+            "Lokasi": "Provinsi Jawa Timur",
+            "Potensi Kapasitas": "7,22 MW",
+            "Luas Genangan": "36,10 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [119.600, -5.292] },
+          "properties": {
+            "Nama": "Bendungan Jenelata",
+            "Lokasi": "Provinsi Sulawesi Selatan",
+            "Potensi Kapasitas": "244 MW",
+            "Luas Genangan": "1.220 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Bendungan Baru",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [114.358, -7.913] },
+          "properties": {
+            "Nama": "Bendungan Bajulmati",
+            "Lokasi": "Provinsi Jawa Timur",
+            "Potensi Kapasitas": "18,39 MW",
+            "Luas Genangan": "91,93 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [114.942, -8.244] },
+          "properties": {
+            "Nama": "Bendungan Titab",
+            "Lokasi": "Provinsi Bali",
+            "Potensi Kapasitas": "13,77 MW",
+            "Luas Genangan": "68,83 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [121.768, -3.747] },
+          "properties": {
+            "Nama": "Bendungan Pelosika",
+            "Lokasi": "Provinsi Sulawesi Tenggara",
+            "Potensi Kapasitas": "54,16 MW",
+            "Luas Genangan": "270,8 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Bendungan Baru",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.453, -7.260] },
+          "properties": {
+            "Nama": "Bendungan Merangin",
+            "Lokasi": "Provinsi Jambi",
+            "Potensi Kapasitas": "137,35 MW",
+            "Luas Genangan": "686,76 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Bendungan Baru",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [108.096, -6.856] },
+          "properties": {
+            "Nama": "Bendungan Jatigede",
+            "Lokasi": "Provinsi Jawa Barat",
+            "Potensi Kapasitas": "824,40 MW",
+            "Luas Genangan": "44,81 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [106.112, -6.181] },
+          "properties": {
+            "Nama": "Bendungan Sindang Heula",
+            "Lokasi": "Provinsi Banten",
+            "Potensi Kapasitas": "25,90 MW",
+            "Luas Genangan": "129,5 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [110.191, -7.096] },
+          "properties": {
+            "Nama": "Bendungan Bodri",
+            "Lokasi": "Provinsi Jawa Tengah",
+            "Potensi Kapasitas": "33,69 MW",
+            "Luas Genangan": "168,47 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Bendungan Baru",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [118.399, -8.522] },
+          "properties": {
+            "Nama": "Bendungan Mila",
+            "Lokasi": "Provinsi Nusa Tenggara Barat",
+            "Potensi Kapasitas": "16,90 MW",
+            "Luas Genangan": "84,52 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [113.193, -6.935] },
+          "properties": {
+            "Nama": "Bendungan Nipah",
+            "Lokasi": "Provinsi Jawa Timur",
+            "Potensi Kapasitas": "16,37 MW",
+            "Luas Genangan": "81,83 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [95.318, 5.844] },
+          "properties": {
+            "Nama": "Bendungan Payaseunara",
+            "Lokasi": "Provinsi Aceh",
+            "Potensi Kapasitas": "19,60 MW",
+            "Luas Genangan": "98 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [95.813, 5.407] },
+          "properties": {
+            "Nama": "Bendungan Rajui",
+            "Lokasi": "Provinsi Aceh",
+            "Potensi Kapasitas": "6,72 MW",
+            "Luas Genangan": "33,6 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [123.931, -10.119] },
+          "properties": {
+            "Nama": "Bendungan Raknamo",
+            "Lokasi": "Provinsi Nusa Tenggara Timur",
+            "Potensi Kapasitas": "29,46 MW",
+            "Luas Genangan": "147,3 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [124.836, -9.067] },
+          "properties": {
+            "Nama": "Bendungan Rotiklot",
+            "Lokasi": "Provinsi Nusa Tenggara Timur",
+            "Potensi Kapasitas": "4,98 MW",
+            "Luas Genangan": "24,91 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [104.218, 0.724] },
+          "properties": {
+            "Nama": "Bendungan Sei Gong",
+            "Lokasi": "Provinsi Kepulauan Riau",
+            "Potensi Kapasitas": "71,2 MW",
+            "Luas Genangan": "355,99 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [118.349, -8.472] },
+          "properties": {
+            "Nama": "Bendungan Tanju",
+            "Lokasi": "Provinsi Nusa Tenggara Barat",
+            "Potensi Kapasitas": "57,58 MW",
+            "Luas Genangan": "287,89 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [116.981, -1.149] },
+          "properties": {
+            "Nama": "Bendungan Teritip",
+            "Lokasi": "Provinsi Kalimantan Timur",
+            "Potensi Kapasitas": "18,96 MW",
+            "Luas Genangan": "94,8 Ha",
+            "Status PSN": "PSN",
+            "Status Pembangunan": "Terbangun",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [117.221, 6.391] },
+          "properties": {
+            "Nama": "Bendungan Cibeet",
+            "Lokasi": "Provinsi Jawa Barat",
+            "Potensi Kapasitas": "184,03 MW",
+            "Luas Genangan": "686,76 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Bendungan Baru",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [109.803, -6.977] },
+          "properties": {
+            "Nama": "Bendungan Kedung Langgar",
+            "Lokasi": "Provinsi Jawa Tengah",
+            "Potensi Kapasitas": "28,40 MW",
+            "Luas Genangan": "142 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Bendungan Baru",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [107.081, -6.553] },
+          "properties": {
+            "Nama": "Bendungan Cijurey",
+            "Lokasi": "Provinsi Jawa Barat",
+            "Potensi Kapasitas": "27,8 MW",
+            "Luas Genangan": "139 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Bendungan Baru",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [111.155, -6.919] },
+          "properties": {
+            "Nama": "Bendungan Cabean",
+            "Lokasi": "Provinsi Jawa Tengah",
+            "Potensi Kapasitas": "8,72 MW",
+            "Luas Genangan": "43,58 Ha",
+            "Status PSN": "Non PSN",
+            "Status Pembangunan": "Bendungan Baru",
+            "RUPTL": "Tidak Ada",
+            "Kondisi": "",         /* kategori khusus -> ungu */
+            "Mekanisme": "IPP",
+            "Keterangan": "Kondisi kering (tidak ada tampungan efektif)"
+          }
+        }
+      ]
+    };
+
+    // Pilih ikon berdasarkan kombinasi kondisi
+    function pickIcon(p) {
+      if ((p.Kondisi || '').toLowerCase() === 'kering') return iconViolet;
+      const status = (p["Status Pembangunan"] || '').toLowerCase();
+      const rup   = (p.RUPTL || '').toLowerCase(); // 'ada' / 'tidak ada'
+      if (status === 'terbangun' && rup === 'ada') return iconRed;
+      if (status === 'on going' && rup === 'ada') return iconYellow;
+      if (status === 'terbangun' && rup === 'tidak ada') return iconGreen;
+      if (status === 'on going' && rup === 'tidak ada') return iconBlue;
+      if (status === 'bendungan baru' && rup === 'ada') return iconBlack;
+      return new L.Icon.Default(); // fallback
+    }
+
+    // Tambahkan layer GeoJSON (ikon + popup)
+    var geojsonLayer = L.geoJSON(bendungan, {
+      pointToLayer: function (feature, latlng) {
+        return L.marker(latlng, { icon: pickIcon(feature.properties) });
+      },
+      onEachFeature: function (feature, layer) {
+        let prop = feature.properties;
+        let popupContent =
+          "<b>" + prop.Nama + "</b><br>" +
+          "Lokasi: " + prop["Lokasi"] + "<br>" +
+          "Potensi Kapasitas: " + prop["Potensi Kapasitas"] + "<br>" +
+          "Luas Genangan: " + prop["Luas Genangan"] + "<br>" +
+          "Status PSN: " + prop["Status PSN"] + "<br>" +
+          "Status Pembangunan: " + prop["Status Pembangunan"] + "<br>" +
+          "RUPTL: " + prop["RUPTL"] + "<br>" +
+          "Kondisi: " + (prop["Kondisi"] || "-") + "<br>" +
+          "Mekanisme: " + prop.Mekanisme + "<br>" +
+          "Keterangan: " + prop.Keterangan;
+        layer.bindPopup(popupContent);
+      }
+    }).addTo(map);
+
+    // Fit ke semua titik
+    var bounds = geojsonLayer.getBounds();
+    if (bounds.isValid()) map.fitBounds(bounds, { padding: [20,20] });
+
+    // Legend
+    const legend = L.control({ position: 'topright' });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML = `
+        <div><b>Legenda</b></div>
+        <div class="row"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png"> Merah – Terbangun & RUPTL Ada</div>
+        <div class="row"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png"> Kuning – On Going & RUPTL Ada</div>
+        <div class="row"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png"> Hijau – Terbangun & RUPTL Tidak Ada</div>
+        <div class="row"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png"> Biru – On Going & RUPTL Tidak Ada</div>
+        <div class="row"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-black.png"> Hitam – Bendungan Baru & RUPTL Ada</div>
+        <div class="row"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-violet.png"> Ungu – Kering</div>
+      `;
+      return div;
+    };
+    legend.addTo(map);
+  </script>
+</body>
+</html>
